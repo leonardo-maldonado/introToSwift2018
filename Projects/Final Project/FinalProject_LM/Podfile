@@ -1,0 +1,13 @@
+platform :ios, '9.0'
+
+target 'FinalProject_LM' do
+  use_frameworks!
+
+  pod 'Alamofire', '~> 4.7'
+
+  target 'FinalProject_LMTests' do
+    inherit! :search_paths
+    # Pods for testing
+  end
+
+end
