@@ -13,6 +13,7 @@ class BookmarkViewController: UIViewController {
     @IBOutlet weak var tableView: UITableView!
     
     var crimes: [Crime]?
+    var bookmarkDataStore = BookmarkDataSource()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,9 +32,7 @@ class BookmarkViewController: UIViewController {
     }
     
     fileprivate func getCrimes() {
-        CrimeRepository.shared.getBookmarks { (crimes, error) in
-            guard let crimes = crimes
-                else { return }
+        bookmarkDataStore.getAll { (crimes, error) in
             self.crimes = crimes
             self.tableView.reloadData()
         }
@@ -89,7 +88,7 @@ extension BookmarkViewController: UITableViewDelegate {
             let crimeToDelete = crimes![index]
             crimes!.remove(at: index)
             tableView.deleteRows(at: [indexPath], with: .fade)
-            _ = CrimeRepository.shared.delete(crime: crimeToDelete)
+            _ = bookmarkDataStore.delete(crime: crimeToDelete)
         }
     }
     
@@ -98,13 +97,40 @@ extension BookmarkViewController: UITableViewDelegate {
         return true
     }
     
+    func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath:
+        IndexPath) -> UITableViewCellEditingStyle {
+        
+        guard let crimes = crimes, !crimes.isEmpty else {
+            return .none
+        }
+        
+        return .delete
+    }
+    
     func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath:
         IndexPath, to destinationIndexPath: IndexPath) {
         guard var crimes = crimes else { return }
         let movedObject = crimes[sourceIndexPath.row]
         crimes.remove(at: sourceIndexPath.row)
         crimes.insert(movedObject, at: destinationIndexPath.row)
-        _ = CrimeRepository.shared.updateAll(crimes: crimes)
+        _ = bookmarkDataStore.updateAll(crimes: crimes)
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath:
+        IndexPath) -> CGFloat {
+        
+        guard let crimes = crimes, !crimes.isEmpty else {
+            let statusBarHeight = UIApplication.shared.statusBarFrame.height
+            let navigationBar = navigationController?.navigationBar
+            guard let navigationBarHeight = navigationBar?.bounds.height
+                else { return CGFloat.leastNormalMagnitude }
+            guard let tabBarHeight = tabBarController?.tabBar.bounds
+                .height else { return CGFloat.leastNormalMagnitude }
+            let offset = navigationBarHeight + tabBarHeight + statusBarHeight
+            return view.bounds.height - offset
+        }
+        
+        return UITableViewAutomaticDimension
     }
 }
 
@@ -120,13 +146,24 @@ extension BookmarkViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt
         indexPath: IndexPath) -> UITableViewCell {
         
-        guard let crimes = self.crimes else { return UITableViewCell() }
+        guard let crimes = crimes, !crimes.isEmpty else {
+            let cell = UITableViewCell()
+            cell.selectionStyle = .none
+            cell.textLabel?.textAlignment = .center
+            tableView.separatorStyle = .none
+            navigationItem.leftBarButtonItem?.isEnabled = false
+            cell.textLabel?.text
+                = "You don't have any bookmarks yet."
+            return cell
+        }
         
         let identifier = CrimeTableViewCell.reuseIdentifier
         let cell = tableView.dequeueReusableCell(
             withIdentifier: identifier, for: indexPath)
             as! CrimeTableViewCell
         cell.selectionStyle = .none
+        tableView.separatorStyle = .singleLine
+        navigationItem.leftBarButtonItem?.isEnabled = true
         
         cell.typeLabel?.text = crimes[indexPath.row].crimeType
         cell.descLabel?.text = "\(crimes[indexPath.row].crimeType). " +

@@ -11,22 +11,51 @@ import UIKit
 import MapKit
 
 class CrimeViewController: UIViewController {
-
+    
+    @IBOutlet weak var holdView: UIView!
     @IBOutlet weak var tableView: UITableView!
     
     private let refreshControl = UIRefreshControl()
     
     var crimes: [Crime]?
     
+    let midPosition: CGFloat = UIScreen.main.bounds.midY
+    
+    let topPosition: CGFloat = UIScreen.main.bounds.minY + 88
+    
+    var bottomPosition: CGFloat {
+        return UIScreen.main.bounds.height -
+            (tabBarController?.tabBar.frame.size.height)! - 20
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Crimes"
         setupTableView()
+        
+        let gesture = UIPanGestureRecognizer.init(
+            target: self, action: #selector(CrimeViewController.panGesture))
+        view.addGestureRecognizer(gesture)
+        
+        roundViews()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        navigationController?.isNavigationBarHidden = true
+        prepareBackgroundView()
         getCrimes()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        UIView.animate(withDuration: 0.6, animations: { [weak self] in
+            let frame = self?.view.frame
+            let yComponent = self?.midPosition
+            self?.view.frame = CGRect(x: 0, y: yComponent!, width:
+                frame!.width, height: frame!.height)
+        })
     }
     
     fileprivate func setupTableView() {
@@ -57,6 +86,67 @@ class CrimeViewController: UIViewController {
         tableView.register(crimeHeaderCellNib,
             forHeaderFooterViewReuseIdentifier:
             crimeHeaderCellIdentifier)
+    }
+    
+    @objc func panGesture(_ recognizer: UIPanGestureRecognizer) {
+        
+        let translation = recognizer.translation(in: self.view)
+        let velocity = recognizer.velocity(in: self.view)
+        let y = self.view.frame.minY
+        
+        if y + translation.y >= topPosition && y + translation.y <= bottomPosition {
+            
+            self.view.frame = CGRect(x: 0, y: y + translation.y, width:
+                view.frame.width, height: view.frame.height)
+            
+            recognizer.setTranslation(CGPoint.zero, in: self.view)
+        }
+        
+        if recognizer.state == .ended {
+            
+            UIView.animate(withDuration: 0.2, delay: 0.0, options:
+                [.allowUserInteraction], animations: {
+                    
+                    let swipeDown = velocity.y > 0
+                    let swipeUp = velocity.y < 0
+                    
+                    let viewIsOnTop = self.view.frame.minY <= self.midPosition
+                    let viewIsOnBottom = self.view.frame.minY >= self.midPosition
+                    
+                    if swipeDown && viewIsOnBottom {
+                        
+                        self.view.frame = CGRect( x: 0, y: self.bottomPosition, width:
+                            self.view.frame.width, height: self.view.frame.height)
+                        
+                    } else if swipeUp && viewIsOnBottom {
+                        
+                        self.view.frame = CGRect(x: 0, y: self.midPosition, width:
+                            self.view.frame.width, height: self.view.frame.height)
+                        
+                    } else if swipeDown && viewIsOnTop {
+                        
+                        self.view.frame = CGRect(x: 0, y: self.midPosition, width:
+                            self.view.frame.width, height: self.view.frame.height)
+                        
+                    } else if swipeUp && viewIsOnTop {
+                        
+                        self.view.frame = CGRect(x: 0, y: self.topPosition, width:
+                            self.view.frame.width, height: self.view.frame.height)
+                    }
+                    
+            }, completion: nil)
+        }
+    }
+    
+    func roundViews() {
+        view.layer.cornerRadius = 8
+        holdView.layer.cornerRadius = 3
+        view.clipsToBounds = true
+    }
+    
+    func prepareBackgroundView() {
+        view.backgroundColor = .white
+        holdView.backgroundColor = .lightGray
     }
     
     fileprivate func addRefreshControl() {
@@ -163,14 +253,14 @@ extension CrimeViewController: UITableViewDataSource {
         cell.descLabel?.text = "\(crimes[indexPath.row].crimeType). " +
             "Disclaimer: This is from the Puerto Rico Open Data Portal. " +
         "Information subject to change."
-        cell.dateLabel?.text = crimes[indexPath.row].date
+        cell.dateLabel?.text = crimes[indexPath.row].date.formatted
         
         return cell
     }
 }
 
 extension CrimeViewController: CrimeDetailDelegate {
-    func didBookmarkedCrime() {
+    func didFinish() {
         getCrimes()
     }
 }

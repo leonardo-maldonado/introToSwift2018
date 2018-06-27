@@ -10,7 +10,7 @@ import Foundation
 import Alamofire
 
 enum CrimeRouter: String {
-    case crimes = "pzaz-tkx9.json?$where=point_x%20%21%3D%200"
+    case crimes = "pzaz-tkx9.json?$where=point_x!=0&$limit=50"
     
     static let baseURL = "https://data.pr.gov/resource/"
     

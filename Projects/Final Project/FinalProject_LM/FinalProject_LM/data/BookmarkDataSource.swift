@@ -1,29 +1,24 @@
 //
-//  CrimeLocalDataSource.swift
+//  BookmarkDataSource.swift
 //  FinalProject_LM
 //
-//  Created by Leonardo Maldonado on 6/10/18.
+//  Created by Leonardo Maldonado on 6/26/18.
 //  Copyright © 2018 Leonardo Maldonado. All rights reserved.
 //
 
 import Foundation
 
-enum UserDefaultsType: String {
-    case crimes
-    case bookmarks
-}
-
-class CrimeLocalDataSource: CrimeDataSource {
+class BookmarkDataSource: CrimeDataSource {
     
     let defaults = UserDefaults.standard
-    let key = UserDefaultsType.crimes.rawValue
+    let key = UserDefaultsType.bookmarks.rawValue
     
-    var doesNotExistCrimeDefaults: Bool {
+    var doesNotExistBookmarksDefaults: Bool {
         return defaults.value(forKey: key) == nil
     }
     
     init() {
-        if doesNotExistCrimeDefaults {
+        if doesNotExistBookmarksDefaults {
             setEmptyContainer(for: key)
         }
     }
@@ -75,7 +70,7 @@ class CrimeLocalDataSource: CrimeDataSource {
         return true
     }
     
-    func create(crimes: [Crime]) -> Bool {
+    func updateAll(crimes: [Crime]) -> Bool {
         defaults.set(try? PropertyListEncoder()
             .encode(crimes), forKey: key)
         return true
@@ -90,22 +85,17 @@ class CrimeLocalDataSource: CrimeDataSource {
             .decode(Array<Crime>.self, from: data)
             else { return false }
         
-        guard let index = crimes.index(where: { $0 == crime })
-            else { return false }
-        
-        crimes[index] = crime
+        if let index = crimes.index(where: { $0 == crime }) {
+            crimes[index] = crime
+        } else {
+            crimes.append(crime)
+        }
         
         guard let encodedCrimes = try? PropertyListEncoder()
             .encode(crimes) else { return false }
         
         defaults.set(encodedCrimes, forKey: key)
         
-        return true
-    }
-    
-    func updateAll(crimes: [Crime]) -> Bool {
-        defaults.set(try? PropertyListEncoder()
-            .encode(crimes), forKey: key)
         return true
     }
     
@@ -121,21 +111,15 @@ class CrimeLocalDataSource: CrimeDataSource {
             { $0 == crime }) else { return false }
         
         crimes.remove(at: index)
-    
+        
         defaults.set(try? PropertyListEncoder()
             .encode(crimes), forKey: key)
         
         return true
     }
-    
-    func deleteAll() -> Bool {
-        defaults.set(try? PropertyListEncoder()
-            .encode([Crime]()), forKey: key)
-        return true
-    }
 }
 
-extension CrimeLocalDataSource {
+extension BookmarkDataSource {
     fileprivate func setEmptyContainer(for key: String) {
         defaults.set(try? PropertyListEncoder()
             .encode([Crime]()), forKey: key)

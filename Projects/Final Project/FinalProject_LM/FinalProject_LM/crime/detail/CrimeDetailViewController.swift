@@ -37,7 +37,7 @@ enum CrimeRowCellType: Int {
 }
 
 protocol CrimeDetailDelegate {
-    func didBookmarkedCrime()
+    func didFinish()
 }
 
 class CrimeDetailViewController: UIViewController {
@@ -47,6 +47,7 @@ class CrimeDetailViewController: UIViewController {
     
     var crime: Crime!
     var delegate: CrimeDetailDelegate!
+    var bookmarkDataSource = BookmarkDataSource()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -76,19 +77,50 @@ class CrimeDetailViewController: UIViewController {
         updateNavigationIcon()
     }
     
-    @objc fileprivate func bookmarkIconPressed() {
-        
-        if let bookmarked = crime.bookmarked {
-            crime.bookmarked = !bookmarked
-        } else {
+    fileprivate func toogleBookmarkStatus() {
+        guard let bookmarked = crime.bookmarked else {
             crime.bookmarked = true
+            return
         }
+        crime.bookmarked = !bookmarked
+    }
+    
+    @objc fileprivate func bookmarkIconPressed() {
+        toogleBookmarkStatus()
         
+        guard let bookmarked = crime.bookmarked
+            else { return }
+
+        if bookmarked {
+            addCrimeToBookmarks()
+        } else {
+            deleteCrimeFromBookmarks()
+        }
+    }
+    
+    fileprivate func addCrimeToBookmarks() {
         let crimeUpdated = CrimeRepository
             .shared.update(crime: crime)
-        if crimeUpdated {
+        
+        let bookmarkSaved = bookmarkDataSource
+            .update(crime: crime)
+        
+        if crimeUpdated && bookmarkSaved {
             updateNavigationIcon()
-            delegate.didBookmarkedCrime()
+            delegate.didFinish()
+        }
+    }
+    
+    fileprivate func deleteCrimeFromBookmarks() {
+        let crimeUpdated = CrimeRepository
+            .shared.update(crime: crime)
+        
+        let bookmarkDeleted = bookmarkDataSource
+            .delete(crime: crime)
+        
+        if bookmarkDeleted && crimeUpdated {
+            updateNavigationIcon()
+            delegate.didFinish()
         }
     }
     
@@ -148,7 +180,7 @@ extension CrimeDetailViewController: UITableViewDataSource {
         case .crimeCode?:
             cell.accessoryLabel.text = crime?.crimeCode
         case .date?:
-            cell.accessoryLabel.text = crime?.date
+            cell.accessoryLabel.text = crime?.date.formatted
         case .hour?:
             cell.accessoryLabel.text = crime?.hour
         case .none:
@@ -163,7 +195,7 @@ extension CrimeDetailViewController {
     fileprivate func getMapSnapshoot() {
         let mapSnapshotOptions = MKMapSnapshotOptions()
         
-        // Set the region of the map that is rendered.
+        /// Set the region of the map that is rendered.
         guard let latitude = crime.location?.coordinates[1] else { return }
         guard let longitude = crime.location?.coordinates[0] else { return }
         let location = CLLocationCoordinate2DMake(latitude, longitude)
@@ -174,11 +206,11 @@ extension CrimeDetailViewController {
         /// the current device, which is 2x scale on Retina screens.
         mapSnapshotOptions.scale = UIScreen.main.scale
         
-        // Set the size of the image output.
+        /// Set the size of the image output.
         mapSnapshotOptions.size = CGSize(
             width: UIScreen.main.bounds.height, height: 300)
         
-        // Show buildings and Points of Interest on the snapshot
+        /// Show buildings and Points of Interest on the snapshot
         mapSnapshotOptions.showsBuildings = true
         mapSnapshotOptions.showsPointsOfInterest = true
         

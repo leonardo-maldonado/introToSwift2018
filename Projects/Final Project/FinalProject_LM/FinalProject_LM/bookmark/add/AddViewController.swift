@@ -19,6 +19,7 @@ class AddViewController: UIViewController {
     var delegate: AddCrimeDelegate?
     
     var newCrime = Crime()
+    var bookmarkDataSource = BookmarkDataSource()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -49,7 +50,7 @@ class AddViewController: UIViewController {
     
     @objc fileprivate func addButtonPressed() {
         newCrime.bookmarked = true
-        let crimeUpdated = CrimeRepository.shared.create(crime: newCrime)
+        let crimeUpdated = bookmarkDataSource.create(crime: newCrime)
         if crimeUpdated {
             delegate?.didFinishAddingCrime(crime: newCrime)
         }

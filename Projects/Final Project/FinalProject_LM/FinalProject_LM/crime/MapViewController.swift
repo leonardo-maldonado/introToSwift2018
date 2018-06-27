@@ -18,6 +18,8 @@ class MapViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        addBottomSheetView()
+        
         CrimeRepository.shared.getAllRemote { (crimes, error) in
             guard let crimes = crimes else { return }
             for crime in crimes {
@@ -32,6 +34,22 @@ class MapViewController: UIViewController {
 
         determineCurrentLocation()
         setupMapView()
+    }
+    
+    func addBottomSheetView(scrollable: Bool? = true) {
+        let bottomSheetVC = UIStoryboard.init(
+            name: "CrimeViewController", bundle: nil)
+            .instantiateInitialViewController()
+            as! CrimeViewController
+        
+        self.addChildViewController(bottomSheetVC)
+        self.view.addSubview(bottomSheetVC.view)
+        bottomSheetVC.didMove(toParentViewController: self)
+        
+        let height = view.frame.height
+        let width  = view.frame.width
+        bottomSheetVC.view.frame = CGRect(x: 0, y:
+            self.view.frame.maxY, width: width, height: height)
     }
     
     func determineCurrentLocation() {
@@ -65,7 +83,7 @@ extension MapViewController: CLLocationManagerDelegate {
         let longitude = userLocation.coordinate.longitude
         let center = CLLocationCoordinate2D(
             latitude: latitude, longitude: longitude)
-        let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        let span = MKCoordinateSpan(latitudeDelta: 0.5, longitudeDelta: 0.1)
         let region = MKCoordinateRegion(center: center, span: span)
         
         mapView.setRegion(region, animated: true)

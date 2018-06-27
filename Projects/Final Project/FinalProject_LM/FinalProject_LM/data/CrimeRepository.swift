@@ -26,11 +26,6 @@ class CrimeRepository: CrimeDataSource {
     
     func getAllRemote(completion: @escaping CrimeDataSource.callback) {
         getCrimesFromRemoteDataSource { (crimes, error) in
-            guard let crimes = crimes else {
-                completion(nil, nil)
-                return
-            }
-            
             completion(crimes, nil)
         }
     }
@@ -79,6 +74,12 @@ class CrimeRepository: CrimeDataSource {
         return crimeCreated
     }
     
+    func create(crimes: [Crime]) -> Bool {
+        cachedCrimes? = crimes
+        let crimeCreated = crimesLocalDataSource.create(crimes: crimes)
+        return crimeCreated
+    }
+    
     func update(crime: Crime) -> Bool {
         if let index = cachedCrimes?.index(where: { $0 == crime }) {
             cachedCrimes?[index] = crime
@@ -105,13 +106,6 @@ class CrimeRepository: CrimeDataSource {
         return crimesLocalDataSource.delete(crime:crime)
     }
     
-    func getBookmarks(completion: @escaping CrimeDataSource.callback) {
-        crimesLocalDataSource.getAll { (crimes, error) in
-            let bookmarks = crimes?.filter { $0.bookmarked == true }
-            completion(bookmarks, nil)
-        }
-    }
-    
     // MARK: Helpers
     
     fileprivate func refreshCache(crimes: [Crime]) {
@@ -130,20 +124,7 @@ class CrimeRepository: CrimeDataSource {
     }
     
     fileprivate func refreshLocaDataSource(crimes: [Crime]) {
-        
-        crimesLocalDataSource.getAll { (oldCrimes, error) in
-            guard let oldCrimes = oldCrimes?.filter({
-                $0.bookmarked == nil || $0.bookmarked == false })
-                else { return }
-    
-            for crime in oldCrimes {
-                _ = self.crimesLocalDataSource.delete(crime: crime)
-            }
-        }
-        
-        for crime in crimes {
-            _ = crimesLocalDataSource.create(crime: crime)
-        }
+        _ = crimesLocalDataSource.create(crimes: crimes)
     }
     
     fileprivate func getCrimesFromRemoteDataSource(
